@@ -13,9 +13,13 @@ from lemonlib.util import MagicSysIdRoutine
 from lemonlib.smart import SmartProfile
 
 from .telemetry import Telemetry
+from magicbot import will_reset_to
 
+from typing import Optional, Union, List
 
 class SwerveDrive:
+
+    
 
     max_speed: float
     drive_profile: SmartProfile
@@ -66,6 +70,9 @@ class SwerveDrive:
 
     drivetrain = None
 
+    drive_control = will_reset_to(swerve.requests.Idle())
+
+    SIM_LOOP_PERIOD =  0.005
 
     def setup(self) -> None:
         self.drive_controller = self.drive_profile.create_ctre_flywheel_controller()
@@ -154,10 +161,16 @@ class SwerveDrive:
                 self.back_right,
             ],
         )
-        self.drive_control = swerve.requests.Idle()
+
 
         self.telemetry = Telemetry(self.max_speed)
         self.drivetrain.register_telemetry(lambda state: self.telemetry.telemeterize(state))
+
+        self.sim_notifier: Notifier | None = None
+        self.last_sim_time: units.second = 0.0
+
+        if utils.is_simulation():
+            self.start_sim_thread()
 
     def drive_robot_centric(
         self,
@@ -178,10 +191,20 @@ class SwerveDrive:
         self.drive_control.velocity_x = x
         self.drive_control.velocity_y = y
         self.drive_control.rotational_rate = rotation
+        
+    def start_sim_thread(self):
+        def sim_periodic():
+            current_time = utils.get_current_time_seconds()
+            delta_time = current_time - self.last_sim_time
+            self.last_sim_time = current_time
 
-    def update_sim_state(self, dt, supply_voltage):
-        if self.drivetrain is not None:
-            return self.drivetrain.update_sim_state(dt, supply_voltage)
+            # use the measured time delta, get battery voltage from WPILib
+            self.drivetrain.update_sim_state(delta_time, RobotController.getBatteryVoltage())
+
+        self.last_sim_time = utils.get_current_time_seconds()
+        self.sim_notifier = Notifier(sim_periodic)
+        self.sim_notifier.startPeriodic(self.SIM_LOOP_PERIOD)
+
 
     def add_vision_measurement(
         self,

@@ -114,11 +114,11 @@ class MyRobot(LemonRobot):
         self.steer_profile = SmartProfile(
             "steer",
             {
-                "kP": 100.0,
+                "kP": 3.0,
                 "kI": 0.0,
-                "kD": 0.5,
-                "kS": 0.1,
-                "kV": 2.66,
+                "kD": 0.0,
+                "kS": 0.14,
+                "kV": 0.375,
                 "kA": 0.0,
             },
             True,
@@ -126,11 +126,11 @@ class MyRobot(LemonRobot):
         self.drive_profile = SmartProfile(
             "drive",
             {
-                "kP": 0.1,
+                "kP": 0.0,
                 "kI": 0.0,
                 "kD": 0.0,
-                "kS": 0.0,
-                "kV": 0.124,
+                "kS": 0.17,
+                "kV": 0.104,
             },
             True,
         )

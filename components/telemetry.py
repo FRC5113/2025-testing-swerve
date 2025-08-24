@@ -8,7 +8,6 @@ from wpiutil import SendableBuilder, Sendable
 
 class Telemetry(Sendable):
 
-
     def __init__(self, max_speed: units.meters_per_second):
         """
         Construct a telemetry object with the specified max speed of the robot.
@@ -52,8 +51,6 @@ class Telemetry(Sendable):
         self._field_pub = self._table.getDoubleArrayTopic("robotPose").publish()
         self._field_type_pub = self._table.getStringTopic(".type").publish()
 
-
-
     def telemeterize(self, state: swerve.SwerveDrivetrain.SwerveDriveState):
         """
         Accept the swerve drive state and telemeterize it to SmartDashboard and SignalLogger.
@@ -92,4 +89,3 @@ class Telemetry(Sendable):
         This is used mainly for AdvantageScope's swerve tab"""
         SmartDashboard.putNumberArray("Swerve Setpoints", module_states_array)
         SmartDashboard.putNumberArray("Swerve Measurements", module_targets_array)
-

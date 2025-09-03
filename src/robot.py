@@ -13,21 +13,23 @@ from phoenix6 import CANBus, configs, hardware, signals, swerve, units
 from phoenix6.configs import TalonFXConfiguration, CANcoderConfiguration
 
 from components.swerve_drivetrain import SwerveDrive
+
 from wpimath.units import inchesToMeters
 from wpilib import RobotBase
 from lemonlib.smart import SmartProfile
 
 
-class MyRobot(LemonRobot):
 
+class MyRobot(LemonRobot):
     drivetrain: SwerveDrive
+
+    max_speed = SmartPreference(4.73)
+    max_angular_rate = SmartPreference(4.71)
 
     def createObjects(self):
         """
         SWERVE
         """
-        self.max_speed = 4.73
-        self.max_angular_rate = rotationsToRadians(0.75)
 
         self.steer_closed_loop_output = swerve.ClosedLoopOutputType.VOLTAGE
         self.drive_closed_loop_output = swerve.ClosedLoopOutputType.VOLTAGE
@@ -35,7 +37,7 @@ class MyRobot(LemonRobot):
         self.drive_motor_type = swerve.DriveMotorArrangement.TALON_FX_INTEGRATED
         self.steer_motor_type = swerve.SteerMotorArrangement.TALON_FX_INTEGRATED
 
-        self.steer_feedback_type = swerve.SteerFeedbackType.FUSED_CANCODER
+        self.steer_feedback_type = swerve.SteerFeedbackType.REMOTE_CANCODER
 
         self.slip_current: units.ampere = 120.0
 
@@ -48,7 +50,7 @@ class MyRobot(LemonRobot):
         self.encoder_initial_configs = configs.CANcoderConfiguration()
         self.pigeon_configs: configs.Pigeon2Configuration | None = None
 
-        self.canbus = CANBus("", "./logs/example.hoot")
+        self.canbus = CANBus("can0", "./logs/example.hoot")
 
         self.speed_at_12_volts: units.meters_per_second = 4.73
 
@@ -175,11 +177,15 @@ class MyRobot(LemonRobot):
         self.back_left = self.module_constants[2]
         self.back_right = self.module_constants[3]
 
+        """
+        MISC
+        """
+
         self.controller = LemonInput(0)
 
     def teleopPeriodic(self):
-        self.drivetrain.drive_robot_centric(
-            self.controller.getLeftX(),
-            self.controller.getLeftY(),
-            self.controller.getRightX(),
+        self.drivetrain.drive_field_centric(
+            self.controller.getRawAxis(0),
+            self.controller.getRawAxis(1),
+            self.controller.getRawAxis(2),
         )

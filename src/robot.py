@@ -88,13 +88,12 @@ class MyRobot(LemonRobot):
     climber: Climber
     drivetrain: SwerveDrive
 
-    max_speed = SmartPreference(4.73)
-    max_angular_rate = SmartPreference(4.71)
+    # max_speed = SmartPreference(value=4.73)
+    # max_angular_rate = SmartPreference(value=4.71)
 
-        # greatest speed that chassis should move (not greatest possible speed)
-    top_speed = SmartPreference(3.0)
-    top_omega = SmartPreference(6.0)
-    slew_rate = SmartPreference(5.0)
+    max_speed = 4.73
+    max_angular_rate = 4.71
+
 
     def createObjects(self):
         """
@@ -111,7 +110,7 @@ class MyRobot(LemonRobot):
 
         self.steer_feedback_type = swerve.SteerFeedbackType.FUSED_CANCODER
 
-        self.slip_current: units.ampere = 120.0
+        self.slip_current: units.amperes = 120.0
 
         self.drive_initial_configs = configs.TalonFXConfiguration()
         self.steer_initial_configs = configs.TalonFXConfiguration().with_current_limits(
@@ -130,17 +129,17 @@ class MyRobot(LemonRobot):
 
         self.drive_gear_ratio = 6.746031746031747
         self.steer_gear_ratio = 21.428571428571427
-        self.wheel_radius: units.meter = inchesToMeters(2)
+        self.wheel_radius: units.meters = inchesToMeters(2)
 
         self.invert_left_side = False
         self.invert_right_side = True
 
         self.pigeon_id = 30
 
-        self.steer_inertia: units.kilogram_square_meter = 0.01
-        self.drive_inertia: units.kilogram_square_meter = 0.01
-        self.steer_friction_voltage: units.volt = 0.2
-        self.drive_friction_voltage: units.volt = 0.2
+        self.steer_inertia: units.kilogram_square_meters = 0.01
+        self.drive_inertia: units.kilogram_square_meters = 0.01
+        self.steer_friction_voltage: units.volts = 0.2
+        self.drive_friction_voltage: units.volts = 0.2
 
         self.drivetrain_constants = (
             swerve.SwerveDrivetrainConstants()
@@ -152,20 +151,20 @@ class MyRobot(LemonRobot):
         self.drive_motor_ids = [21, 31, 11, 41]
         self.steer_motor_ids = [22, 32, 12, 42]
         self.encoder_ids = [23, 33, 13, 43]
-        self.encoder_offsets: list[units.rotation] = [
+        self.encoder_offsets: list[float] = [
             -0.15380859375,
             0.250244140625,
             0.314208984375,
             0.33642578125,
         ]
 
-        self.x_positions: list[units.meter] = [
+        self.x_positions: list[units.meters] = [
             inchesToMeters(12.5),
             inchesToMeters(12.5),
             inchesToMeters(-12.5),
             inchesToMeters(-12.5),
         ]
-        self.y_positions: list[units.meter] = [
+        self.y_positions: list[units.meters] = [
             inchesToMeters(12.5),
             inchesToMeters(-12.5),
             inchesToMeters(12.5),
@@ -174,7 +173,7 @@ class MyRobot(LemonRobot):
 
         self.steer_motor_inverted = False
         self.encoder_inverted = True
-        self.offset: units.meter = inchesToMeters(12.5)
+        self.offset: units.meters = inchesToMeters(12.5)
 
         self.steer_profile = SmartProfile(
             "steer",
@@ -387,11 +386,7 @@ class MyRobot(LemonRobot):
         self.primary = LemonInput(0)
         self.secondary = LemonInput(1)
 
-        # self.commandprimary = CommandLemonInput(0)
-
-        self.x_filter = SlewRateLimiter(self.slew_rate)
-        self.y_filter = SlewRateLimiter(self.slew_rate)
-        self.theta_filter = SlewRateLimiter(self.slew_rate)
+        # self.commandprimary = CommandLemonInput(0
 
         self.upper_algae_button_released = True
         self.lower_algae_button_released = True

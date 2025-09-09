@@ -14,10 +14,20 @@ robotpy_extras = [
     # "all",
      "apriltag",
      "commands2",
+
+    # "cscore",
+     "navx",
+    # "pathplannerlib",
+    # "phoenix5",
+     "phoenix6",
+    # "playingwithfusion",
+     "rev",
     # "romi",
     # "sim",
     # "xrp",
 ]
 
 # Other pip packages to install
-requires = ["phoenix6==25.90.0a2","robotpy-rev==2027.0.0a1"]
+requires = [
+    "photonlibpy==2025.1.1", "sleipnirgroup-choreolib","phoenix6"
+]

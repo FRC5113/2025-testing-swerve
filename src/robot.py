@@ -74,6 +74,7 @@ from components.elevator import Elevator, ElevatorHeight
 from components.claw import Claw, ClawAngle
 from components.climber import Climber
 from components.arm_control import ArmControl
+from components.sysid_drive import SysIdDriveTranslation, SysIdDriveSteer, SysIdDriveRotation
 
 from lemonlib import LemonRobot, fms_feedback
 from lemonlib.command import CommandLemonInput
@@ -81,9 +82,13 @@ from lemonlib.util import get_file
 
 
 
-
+class MyRobot(LemonRobot):
+    sys_translation: SysIdDriveTranslation
+    sys_steer: SysIdDriveSteer
+    sys_rotation: SysIdDriveRotation
 
     arm_control: ArmControl
+
     elevator: Elevator
     claw: Claw
     climber: Climber
@@ -385,6 +390,7 @@ from lemonlib.util import get_file
         # initialize HIDs here in case they are changed after robot initializes
         self.primary = LemonInput(0)
         self.secondary = LemonInput(1)
+        self.tertiary = LemonInput(2)
 
         # self.commandprimary = CommandLemonInput(0
 
@@ -408,50 +414,9 @@ from lemonlib.util import get_file
                 self.arm_control.set(ElevatorHeight.L1, ClawAngle.TROUGH)
             if self.secondary.getBButton():
                 self.arm_control.set(ElevatorHeight.L2, ClawAngle.BRANCH)
-                # DON'T UNCOMMENT!!!!!!!!!!!!!!!!!!!!!!!!
-                # if self.camera_front.get_best_tag() is not None and (
-                #     self.swerve_drive.get_distance_from_pose(
-                #         self.camera_front.get_best_pose(True).transformBy(
-                #             Transform2d(0.565, -0.21, Rotation2d()) < 0.03
-                #         )
-                #     )
-                #     or self.swerve_drive.get_distance_from_pose(
-                #         self.camera_front.get_best_pose(True).transformBy(
-                #             Transform2d(0.55, 0.21, Rotation2d()) < 0.03
-                #         )
-                #     )
-                # ):
-                #     self.led_strip.is_aligned()
             if self.secondary.getXButton():
-                # if self.camera_front.get_best_tag() is not None and (
-                #     self.swerve_drive.get_distance_from_pose(
-                #         self.camera_front.get_best_pose(True).transformBy(
-                #             Transform2d(0.565, -0.21, Rotation2d()) < 0.03
-                #         )
-                #     )
-                #     or self.swerve_drive.get_distance_from_pose(
-                #         self.camera_front.get_best_pose(True).transformBy(
-                #             Transform2d(0.55, 0.21, Rotation2d()) < 0.03
-                #         )
-                #     )
-                # ):
-                #     self.led_strip.is_aligned()
                 self.arm_control.set(ElevatorHeight.L3, ClawAngle.BRANCH)
             if self.secondary.getYButton():
-
-                # if self.camera_front.get_best_tag() is not None and (
-                #     self.swerve_drive.get_distance_from_pose(
-                #         self.camera_front.get_best_pose(True).transformBy(
-                #             Transform2d(0.53, -0.21, Rotation2d()) < 0.03
-                #         )
-                #     )
-                #     or self.swerve_drive.get_distance_from_pose(
-                #         self.camera_front.get_best_pose(True).transformBy(
-                #             Transform2d(0.53, 0.21, Rotation2d()) < 0.03
-                #         )
-                #     )
-                # ):
-                #     self.led_strip.is_aligned()
                 self.arm_control.set(ElevatorHeight.L4, ClawAngle.BRANCH)
 
             if self.secondary.getStartButton():
@@ -472,10 +437,6 @@ from lemonlib.util import get_file
 
             if self.secondary.getRightBumper():
                 self.arm_control.set_wheel_voltage(-1)
-
-            # if self.secondary.getPOV() == 270:
-            #     self.arm_control.next_state_now("elevator_failsafe")
-
             self.elevator_ligament.setLength((self.elevator.get_height() * 39.37) + 5)
             self.claw_ligament.setAngle(self.claw.get_angle() - 90)
 
@@ -488,3 +449,35 @@ from lemonlib.util import get_file
                 self.climber.set_speed(-1)
             if self.primary.getCrossButton():
                 self.climber.set_speed(1)
+
+        with self.consumeExceptions():
+            """
+            SYSID
+            """
+            if self.tertiary.getLeftBumper():
+                if self.tertiary.getAButton():
+                    self.sys_translation.quasistatic_forward()
+                if self.tertiary.getBButton():
+                    self.sys_translation.quasistatic_reverse()
+                if self.tertiary.getXButton():
+                    self.sys_translation.dynamic_forward()
+                if self.tertiary.getYButton():
+                    self.sys_translation.dynamic_reverse()
+            elif self.tertiary.getRightBumper():
+                if self.tertiary.getAButton():
+                    self.sys_steer.quasistatic_forward()
+                if self.tertiary.getBButton():
+                    self.sys_steer.quasistatic_reverse()
+                if self.tertiary.getXButton():
+                    self.sys_steer.dynamic_forward()
+                if self.tertiary.getYButton():
+                    self.sys_steer.dynamic_reverse()
+            elif self.tertiary.getStartButton():
+                if self.tertiary.getAButton():
+                    self.sys_rotation.quasistatic_forward()
+                if self.tertiary.getBButton():
+                    self.sys_rotation.quasistatic_reverse()
+                if self.tertiary.getXButton():
+                    self.sys_rotation.dynamic_forward()
+                if self.tertiary.getYButton():
+                    self.sys_rotation.dynamic_reverse()

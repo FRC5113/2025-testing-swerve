@@ -15,7 +15,7 @@ def fms_feedback(f=None, *, key: Optional[str] = None) -> Callable:
     @functools.wraps(f)
     def wrapper(self):
         return f(self)
-    
+
     if not DriverStation.isFMSAttached():
         wrapper._magic_feedback = True
         wrapper._magic_feedback_key = key

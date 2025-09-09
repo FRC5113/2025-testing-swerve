@@ -1,4 +1,3 @@
-
 #
 # See the documentation for more details on how this works
 #
@@ -40,7 +39,7 @@ class PhysicsEngine:
         self.physics_controller = physics_controller
         self.robot = robot
 
-
-
     def update_sim(self, now: float, tm_diff: float) -> None:
-        self.robot.drivetrain.sim_update(tm_diff, wpilib.RobotController.getBatteryVoltage())
+        self.robot.drivetrain.sim_update(
+            tm_diff, wpilib.RobotController.getBatteryVoltage()
+        )

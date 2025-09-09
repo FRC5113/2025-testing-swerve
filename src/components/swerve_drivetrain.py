@@ -32,8 +32,7 @@ class SwerveDrive:
 
     drivetrain = None
 
-    drive_control = swerve.requests.Idle()
-
+    request = swerve.requests.Idle()
 
     def setup(self) -> None:
 
@@ -55,19 +54,13 @@ class SwerveDrive:
             lambda state: self.telemetry.telemeterize(state)
         )
 
-        self.drivetrain.register_telemetry(
-            lambda state: self.telemetry.telemeterize(state)
-        )
-
-
-
     def drive_robot_centric(
         self,
         x: units.meters_per_second,
         y: units.meters_per_second,
         rotation: units.radians_per_second,
     ):
-        self.drive_control = (
+        self.request = (
             swerve.requests.RobotCentric()
             .with_velocity_x(x * self.max_speed)
             .with_velocity_y(y * self.max_speed)
@@ -80,17 +73,18 @@ class SwerveDrive:
         y: units.meters_per_second,
         rotation: units.radians_per_second,
     ):
-        self.drive_control = (
+        self.request = (
             swerve.requests.RobotCentric()
             .with_velocity_x(x * self.max_speed)
             .with_velocity_y(y * self.max_speed)
-            .with_rotational_rate(rotation  * self.max_speed)
+            .with_rotational_rate(rotation * self.max_speed)
         )
 
-
-    def sim_update(self,delta_time: units.second, battery_voltage: units.volt):
+    def sim_update(self, delta_time: units.second, battery_voltage: units.volt):
         self.drivetrain.update_sim_state(delta_time, battery_voltage)
 
+    def apply_request(self, request: swerve.requests.SwerveRequest):
+        self.request = request
 
     def add_vision_measurement(
         self,
@@ -107,4 +101,4 @@ class SwerveDrive:
 
     def execute(self):
         # print(self.drive_control)
-        self.drivetrain.set_control(self.drive_control)
+        self.drivetrain.set_control(self.request)

@@ -1,3 +1,4 @@
+
 #
 # See the documentation for more details on how this works
 #
@@ -18,10 +19,6 @@ from pyfrc.physics.core import PhysicsInterface
 from pyfrc.physics import motor_cfgs, tankmodel
 from pyfrc.physics.units import units
 
-from wpilib import RobotController
-from phoenix6 import utils
-from components.swerve_drivetrain import SwerveDrive
-
 import typing
 
 if typing.TYPE_CHECKING:
@@ -29,17 +26,21 @@ if typing.TYPE_CHECKING:
 
 
 class PhysicsEngine:
+    """
+    Simulates a 4-wheel robot using Tank Drive joystick control
+    """
 
     def __init__(self, physics_controller: PhysicsInterface, robot: "MyRobot"):
-        self.swerve = SwerveDrive()
+        """
+        :param physics_controller: `pyfrc.physics.core.Physics` object
+                                   to communicate simulation effects to
+        :param robot: your robot object
+        """
+
+        self.physics_controller = physics_controller
+        self.robot = robot
+
+
 
     def update_sim(self, now: float, tm_diff: float) -> None:
-        current_time = utils.get_current_time_seconds()
-        last_sim_time = current_time
-        delta_time = current_time - last_sim_time
-
-
-        # use the measured time delta, get battery voltage from WPILib
-        self.swerve.update_sim_state(
-            delta_time, RobotController.getBatteryVoltage()
-        )
+        self.robot.drivetrain.sim_update(tm_diff, wpilib.RobotController.getBatteryVoltage())

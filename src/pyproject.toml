@@ -1,15 +1,12 @@
 #
 # Use this configuration file to control what RobotPy packages are installed
-# on your RoboRIO
+# on your SystemCore
 #
 
 [tool.robotpy]
 
 # Version of robotpy this project depends on
-robotpy_version = "2025.3.2.2"
-
-# Run tests in isolated mode to prevent hanging and weird errors
-pyfrc.isolated = true
+robotpy_version = "2027.0.0a2"
 
 # Which extra RobotPy components should be installed
 # -> equivalent to `pip install robotpy[extra1, ...]
@@ -17,6 +14,7 @@ robotpy_extras = [
     # "all",
      "apriltag",
      "commands2",
+
     # "cscore",
      "navx",
     # "pathplannerlib",
@@ -25,7 +23,7 @@ robotpy_extras = [
     # "playingwithfusion",
      "rev",
     # "romi",
-     "sim",
+    # "sim",
     # "xrp",
 ]
 

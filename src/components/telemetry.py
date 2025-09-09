@@ -6,7 +6,7 @@ from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition, SwerveModule
 from wpiutil import SendableBuilder, Sendable
 
 
-class Telemetry(Sendable):
+class Telemetry:
 
     def __init__(self, max_speed: units.meters_per_second):
         """
@@ -18,7 +18,6 @@ class Telemetry(Sendable):
         self._max_speed = max_speed
         SignalLogger.start()
 
-        Sendable.__init__(self)
         # What to publish over networktables for telemetry
         self._inst = NetworkTableInstance.getDefault()
 

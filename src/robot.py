@@ -13,6 +13,7 @@ from phoenix6 import CANBus, configs, hardware, signals, swerve, units
 from phoenix6.configs import TalonFXConfiguration, CANcoderConfiguration
 
 from components.swerve_drivetrain import SwerveDrive
+
 from wpimath.units import inchesToMeters
 from wpilib import RobotBase
 from lemonlib.smart import SmartProfile
@@ -80,7 +81,7 @@ from lemonlib.util import get_file
 
 
 
-class MyRobot(LemonRobot):
+
 
     arm_control: ArmControl
     elevator: Elevator
@@ -94,13 +95,10 @@ class MyRobot(LemonRobot):
     max_speed = 4.73
     max_angular_rate = 4.71
 
-
     def createObjects(self):
         """
         SWERVE
         """
-        self.max_speed = 4.73
-        self.max_angular_rate = rotationsToRadians(0.75)
 
         self.steer_closed_loop_output = swerve.ClosedLoopOutputType.VOLTAGE
         self.drive_closed_loop_output = swerve.ClosedLoopOutputType.VOLTAGE
@@ -108,7 +106,7 @@ class MyRobot(LemonRobot):
         self.drive_motor_type = swerve.DriveMotorArrangement.TALON_FX_INTEGRATED
         self.steer_motor_type = swerve.SteerMotorArrangement.TALON_FX_INTEGRATED
 
-        self.steer_feedback_type = swerve.SteerFeedbackType.FUSED_CANCODER
+        self.steer_feedback_type = swerve.SteerFeedbackType.REMOTE_CANCODER
 
         self.slip_current: units.amperes = 120.0
 
@@ -120,6 +118,7 @@ class MyRobot(LemonRobot):
         )
         self.encoder_initial_configs = configs.CANcoderConfiguration()
         self.pigeon_configs: configs.Pigeon2Configuration | None = None
+
 
         self.canbus = CANBus("rio", "./logs/example.hoot")
 
@@ -343,6 +342,7 @@ class MyRobot(LemonRobot):
             lambda x: 1.89 * x**3 + 0.61 * x, 0.0, deadband=0.1, max_mag=1.0
         )
 
+
         # alerts
         AlertManager(self.logger)
         if self.low_bandwidth:
@@ -396,6 +396,7 @@ class MyRobot(LemonRobot):
             applyDeadband(self.primary.getLeftX(),0.03),
             applyDeadband(self.primary.getLeftY(),0.03),
             applyDeadband(self.primary.getRightX(),0.03),
+
         )
         with self.consumeExceptions():
             """

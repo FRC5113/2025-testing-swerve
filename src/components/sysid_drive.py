@@ -13,7 +13,6 @@ from wpilib.sysid import SysIdRoutineLog
 class SysIdDriveTranslation(MagicSysIdRoutine):
     drivetrain: SwerveDrive
 
-
     def setup(self):
         self.translation_characterization = swerve.requests.SysIdSwerveTranslation()
         self.setup_sysid(
@@ -39,7 +38,6 @@ class SysIdDriveTranslation(MagicSysIdRoutine):
 class SysIdDriveSteer(MagicSysIdRoutine):
     drivetrain: SwerveDrive
 
-
     def setup(self):
         self.steer_characterization = swerve.requests.SysIdSwerveSteerGains()
         self.setup_sysid(
@@ -63,7 +61,6 @@ class SysIdDriveSteer(MagicSysIdRoutine):
 
 class SysIdDriveRotation(MagicSysIdRoutine):
     drivetrain: SwerveDrive
-
 
     def setup(self):
         self.rotation_characterization = swerve.requests.SysIdSwerveRotation()

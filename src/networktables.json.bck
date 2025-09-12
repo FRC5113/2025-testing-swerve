@@ -1,13 +1,5 @@
 [
   {
-    "name": "/Preferences/wheel_twist",
-    "type": "double",
-    "value": 0.2,
-    "properties": {
-      "persistent": true
-    }
-  },
-  {
     "name": "/Preferences/max_speed",
     "type": "double",
     "value": 4.73,
@@ -19,6 +11,14 @@
     "name": "/Preferences/max_angular_rate",
     "type": "double",
     "value": 4.71,
+    "properties": {
+      "persistent": true
+    }
+  },
+  {
+    "name": "/Preferences/wheel_twist",
+    "type": "double",
+    "value": 0.2,
     "properties": {
       "persistent": true
     }
@@ -106,7 +106,7 @@
   {
     "name": "/Preferences/drive_kV",
     "type": "double",
-    "value": 0.124,
+    "value": 0.0,
     "properties": {
       "persistent": true
     }
@@ -251,6 +251,86 @@
     "name": "/Preferences/claw_kMaxA",
     "type": "double",
     "value": 500.0,
+    "properties": {
+      "persistent": true
+    }
+  },
+  {
+    "name": "/Preferences/translation_kP",
+    "type": "double",
+    "value": 10.0,
+    "properties": {
+      "persistent": true
+    }
+  },
+  {
+    "name": "/Preferences/translation_kI",
+    "type": "double",
+    "value": 0.0,
+    "properties": {
+      "persistent": true
+    }
+  },
+  {
+    "name": "/Preferences/translation_kD",
+    "type": "double",
+    "value": 0.0,
+    "properties": {
+      "persistent": true
+    }
+  },
+  {
+    "name": "/Preferences/rotation_kP",
+    "type": "double",
+    "value": 10.0,
+    "properties": {
+      "persistent": true
+    }
+  },
+  {
+    "name": "/Preferences/rotation_kI",
+    "type": "double",
+    "value": 0.0,
+    "properties": {
+      "persistent": true
+    }
+  },
+  {
+    "name": "/Preferences/rotation_kD",
+    "type": "double",
+    "value": 0.0,
+    "properties": {
+      "persistent": true
+    }
+  },
+  {
+    "name": "/Preferences/rotation_kMaxV",
+    "type": "double",
+    "value": 10.0,
+    "properties": {
+      "persistent": true
+    }
+  },
+  {
+    "name": "/Preferences/rotation_kMaxA",
+    "type": "double",
+    "value": 100.0,
+    "properties": {
+      "persistent": true
+    }
+  },
+  {
+    "name": "/Preferences/rotation_kMinInput",
+    "type": "double",
+    "value": -3.141592653589793,
+    "properties": {
+      "persistent": true
+    }
+  },
+  {
+    "name": "/Preferences/rotation_kMaxInput",
+    "type": "double",
+    "value": 3.141592653589793,
     "properties": {
       "persistent": true
     }

@@ -1,85 +1,56 @@
-from lemonlib import LemonRobot
-
-# from components.telemetry import Telemetry
-
-from wpimath.geometry import Rotation2d
-from wpimath.units import rotationsToRadians
-
-from lemonlib import LemonInput
-
-from lemonlib.smart import SmartPreference, SmartProfile
-
-from phoenix6 import CANBus, configs, hardware, signals, swerve, units
-from phoenix6.configs import TalonFXConfiguration, CANcoderConfiguration
-
-from components.swerve_drivetrain import SwerveDrive
-
-from wpimath.units import inchesToMeters
-from wpilib import RobotBase
-from lemonlib.smart import SmartProfile
-
 import math
-from pathlib import Path
 
-import wpilib
+from lemonlib import (
+    LemonRobot,
+    LemonInput,
+    LemonCamera,
+    fms_feedback
+)
+from lemonlib.smart import (
+    SmartPreference,
+    SmartProfile,
+)
+from lemonlib.util import (
+    AlertManager,
+    AlertType,
+)
+
+from phoenix6 import (
+    CANBus,
+    configs,
+    swerve,
+    units,
+)
+from phoenix6.configs import (
+    TalonFXConfiguration,
+    CANcoderConfiguration,
+)
+from wpimath.units import inchesToMeters
+from wpimath import (
+    units,
+    applyDeadband,
+)
+from wpimath.geometry import (
+    Transform3d,
+    Rotation3d,
+)
 from wpilib import (
     Field2d,
     SmartDashboard,
-    DataLogManager,
-    CameraServer,
-    Mechanism2d,
-    MechanismLigament2d,
-    Color8Bit,
-    RobotController,
-    DigitalInput,
-    DutyCycleEncoder,
-    DriverStation,
-    RobotBase,
-    PowerDistribution,
 )
-
-from wpimath import units, applyDeadband
-from wpimath.filter import SlewRateLimiter
-from wpimath.geometry import (
-    Transform3d,
-    Pose2d,
-    Transform2d,
-    Rotation2d,
-    Rotation3d,
-    Translation2d,
+from robotpy_apriltag import (
+    AprilTagField,
+    AprilTagFieldLayout,
 )
-
-from wpinet import WebServer
-
-from phoenix6.hardware import CANcoder, TalonFX, Pigeon2
-from rev import SparkMax, SparkLowLevel
-from robotpy_apriltag import AprilTagField, AprilTagFieldLayout
-
-import magicbot
-from magicbot import feedback
-
-from lemonlib import LemonInput, LemonCamera
-from lemonlib.util import (
-    curve,
-    AlertManager,
-    AlertType,
-    LEDController,
-    SnapX,
-    SnapY,
-    is_red,
+from components.swerve_drivetrain import SwerveDrive
+from components.telemetry import Telemetry
+from components.sysid_drive import (
+    SysIdDriveTranslation,
+    SysIdDriveSteer,
+    SysIdDriveRotation,
 )
-from lemonlib.smart import SmartPreference, SmartProfile
-
-from components.elevator import Elevator, ElevatorHeight
-from components.claw import Claw, ClawAngle
-from components.climber import Climber
-from components.arm_control import ArmControl
-from components.sysid_drive import SysIdDriveTranslation, SysIdDriveSteer, SysIdDriveRotation
-
-from lemonlib import LemonRobot, fms_feedback
-from lemonlib.command import CommandLemonInput
-from lemonlib.util import get_file
-
+from components.odometry import Odometry
+from autonomous.auto_base import AutoBase
 
 
 class MyRobot(LemonRobot):
@@ -87,18 +58,63 @@ class MyRobot(LemonRobot):
     sys_steer: SysIdDriveSteer
     sys_rotation: SysIdDriveRotation
 
-    arm_control: ArmControl
-
-    elevator: Elevator
-    claw: Claw
-    climber: Climber
+    odometry: Odometry
+    telemetry: Telemetry
     drivetrain: SwerveDrive
 
-    # max_speed = SmartPreference(value=4.73)
-    # max_angular_rate = SmartPreference(value=4.71)
+    max_speed = SmartPreference(value=4.73)
+    max_angular_rate = SmartPreference(value=4.71)
 
-    max_speed = 4.73
-    max_angular_rate = 4.71
+    def create_swerve(self):
+        self.drive_controller = self.drive_profile.create_ctre_flywheel_controller()
+        self.steer_controller = self.steer_profile.create_ctre_turret_controller()
+
+        self.constants_creator: swerve.SwerveModuleConstantsFactory[
+            TalonFXConfiguration,
+            TalonFXConfiguration,
+            CANcoderConfiguration,
+        ] = (
+            swerve.SwerveModuleConstantsFactory()
+            .with_drive_motor_gear_ratio(self.drive_gear_ratio)
+            .with_steer_motor_gear_ratio(self.steer_gear_ratio)
+            .with_coupling_gear_ratio(self.couple_ratio)
+            .with_wheel_radius(self.wheel_radius)
+            .with_steer_motor_gains(self.steer_controller)
+            .with_drive_motor_gains(self.drive_controller)
+            .with_steer_motor_closed_loop_output(self.steer_closed_loop_output)
+            .with_drive_motor_closed_loop_output(self.drive_closed_loop_output)
+            .with_slip_current(self.slip_current)
+            .with_speed_at12_volts(self.speed_at_12_volts)
+            .with_drive_motor_type(self.drive_motor_type)
+            .with_steer_motor_type(self.steer_motor_type)
+            .with_feedback_source(self.steer_feedback_type)
+            .with_drive_motor_initial_configs(self.drive_initial_configs)
+            .with_steer_motor_initial_configs(self.steer_initial_configs)
+            .with_encoder_initial_configs(self.encoder_initial_configs)
+            .with_steer_inertia(self.steer_inertia)
+            .with_drive_inertia(self.drive_inertia)
+            .with_steer_friction_voltage(self.steer_friction_voltage)
+            .with_drive_friction_voltage(self.drive_friction_voltage)
+        )
+        self.module_constants = []
+        for i in range(4):
+            module_constant = self.constants_creator.create_module_constants(
+                self.steer_motor_ids[i],
+                self.drive_motor_ids[i],
+                self.encoder_ids[i],
+                self.encoder_offsets[i],
+                self.x_positions[i],
+                self.y_positions[i],
+                self.invert_left_side if i in [0, 2] else self.invert_right_side,
+                self.steer_motor_inverted,
+                self.encoder_inverted,
+            )
+            self.module_constants.append(module_constant)
+
+        self.front_left = self.module_constants[2]
+        self.front_right = self.module_constants[0]
+        self.back_left = self.module_constants[3]
+        self.back_right = self.module_constants[1]
 
     def createObjects(self):
         """
@@ -124,8 +140,7 @@ class MyRobot(LemonRobot):
         self.encoder_initial_configs = configs.CANcoderConfiguration()
         self.pigeon_configs: configs.Pigeon2Configuration | None = None
 
-
-        self.canbus = CANBus("rio", "./logs/example.hoot")
+        self.canbus = CANBus("can0", "./logs/example.hoot")
 
         self.speed_at_12_volts: units.meters_per_second = 4.73
 
@@ -202,151 +217,63 @@ class MyRobot(LemonRobot):
             },
             True,
         )
-        self.drive_controller = self.drive_profile.create_ctre_flywheel_controller()
-        self.steer_controller = self.steer_profile.create_ctre_turret_controller()
-
-        self.constants_creator: swerve.SwerveModuleConstantsFactory[
-            TalonFXConfiguration,
-            TalonFXConfiguration,
-            CANcoderConfiguration,
-        ] = (
-            swerve.SwerveModuleConstantsFactory()
-            .with_drive_motor_gear_ratio(self.drive_gear_ratio)
-            .with_steer_motor_gear_ratio(self.steer_gear_ratio)
-            .with_coupling_gear_ratio(self.couple_ratio)
-            .with_wheel_radius(self.wheel_radius)
-            .with_steer_motor_gains(self.steer_controller)
-            .with_drive_motor_gains(self.drive_controller)
-            .with_steer_motor_closed_loop_output(self.steer_closed_loop_output)
-            .with_drive_motor_closed_loop_output(self.drive_closed_loop_output)
-            .with_slip_current(self.slip_current)
-            .with_speed_at12_volts(self.speed_at_12_volts)
-            .with_drive_motor_type(self.drive_motor_type)
-            .with_steer_motor_type(self.steer_motor_type)
-            .with_feedback_source(self.steer_feedback_type)
-            .with_drive_motor_initial_configs(self.drive_initial_configs)
-            .with_steer_motor_initial_configs(self.steer_initial_configs)
-            .with_encoder_initial_configs(self.encoder_initial_configs)
-            .with_steer_inertia(self.steer_inertia)
-            .with_drive_inertia(self.drive_inertia)
-            .with_steer_friction_voltage(self.steer_friction_voltage)
-            .with_drive_friction_voltage(self.drive_friction_voltage)
-        )
-        self.module_constants = []
-        for i in range(4):
-            module_constant = self.constants_creator.create_module_constants(
-                self.steer_motor_ids[i],
-                self.drive_motor_ids[i],
-                self.encoder_ids[i],
-                self.encoder_offsets[i],
-                self.x_positions[i],
-                self.y_positions[i],
-                self.invert_left_side if i in [0, 2] else self.invert_right_side,
-                self.steer_motor_inverted,
-                self.encoder_inverted,
-            )
-            self.module_constants.append(module_constant)
-
-        self.front_left = self.module_constants[0]
-        self.front_right = self.module_constants[1]
-        self.back_left = self.module_constants[2]
-        self.back_right = self.module_constants[3]
-        """
-        ELEVATOR
-        """
-
-        # hardware
-        BRUSHLESS = SparkLowLevel.MotorType.kBrushless
-        self.elevator_right_motor = SparkMax(59, BRUSHLESS)
-        self.elevator_left_motor = SparkMax(57, BRUSHLESS)
-        self.elevator_right_encoder = self.elevator_right_motor.getEncoder()
-        self.elevator_left_encoder = self.elevator_left_motor.getEncoder()
-        self.elevator_upper_switch = DigitalInput(0)
-        self.elevator_lower_switch = DigitalInput(1)
-
-        # physical constants
-        self.elevator_carriage_mass = 15.0
-        self.elevator_min_height = 0.0
-        self.elevator_max_height = 0.7
-        self.elevator_gearing = 10.0
-        self.elevator_spool_radius: units.meters = 0.0223
-
-        # profile (estimated)
-        self.elevator_profile = SmartProfile(
-            "elevator",
+        self.translation_profile = SmartProfile(
+            "translation",
             {
-                "kP": 50.0,
+                "kP": 1.0,
                 "kI": 0.0,
                 "kD": 0.0,
-                "kS": 0.0,
-                "kV": 0.0,
-                "kA": 0.0,
-                "kG": 0.0,
-                "kMaxV": 2.0,
-                "kMaxA": 20.0,
             },
             not self.low_bandwidth,
         )
-        self.elevator_tolerance = 0.02
-
-        """
-        CLAW
-        """
-
-        # hardware
-        self.claw_hinge_motor = SparkMax(56, BRUSHLESS)
-        self.claw_left_motor = SparkMax(55, SparkLowLevel.MotorType.kBrushed)
-        self.claw_right_motor = SparkMax(58, SparkLowLevel.MotorType.kBrushed)
-        self.claw_hinge_encoder = self.claw_hinge_motor.getAbsoluteEncoder()
-        self.claw_intake_limit = self.claw_left_motor.getReverseLimitSwitch()
-
-        # physical constants
-        self.claw_gearing = 82.5
-
-        # profile (estimated)
-        self.claw_profile = SmartProfile(
-            "claw",
+        self.rotation_profile = SmartProfile(
+            "rotation",
             {
-                "kP": 0.15,
+                "kP": 0.0,
                 "kI": 0.0,
                 "kD": 0.0,
-                "kS": 0.0,
-                "kV": 0.0,
-                "kA": 0.0,
-                "kG": 0.0,
-                "kMaxV": 150.0,
-                "kMaxA": 500.0,
+                "kMaxV": 10.0,
+                "kMaxA": 100.0,
+                "kMinInput": -math.pi,
+                "kMaxInput": math.pi,
             },
             not self.low_bandwidth,
         )
-        self.claw_hinge_tolerance = 3.0
+        self.create_swerve()
 
         """
-        CLIMBER
+        ODOMETRY
         """
+        self.robot_to_camera_front = Transform3d(
+            -0.2286,
+            0.0,
+            0.2667,
+            Rotation3d(0.0, 0.0, math.pi),
+        )
+        self.robot_to_camera_back = Transform3d(
+            -0.0381,
+            0.0,
+            0.762,
+            Rotation3d(0.0, math.pi / 6, 0.0),
+        )
 
-        # hardware
-        self.climber_motor = TalonFX(51)
-        self.climber_encoder = DutyCycleEncoder(2)
+        # self.field_layout = AprilTagFieldLayout(
+        #     str(Path(__file__).parent.resolve() / "2025_test_field.json")
+        # )
+        self.field_layout = AprilTagFieldLayout.loadField(
+            AprilTagField.k2025ReefscapeWelded
+        )
 
+        self.camera_front = LemonCamera(
+            "Global_Shutter_Camera", self.robot_to_camera_front, self.field_layout
+        )
+        self.camera_back = LemonCamera(
+            "USB_Camera", self.robot_to_camera_back, self.field_layout
+        )
 
         """
         MISCELLANEOUS
         """
-
-        # self.period: units.seconds = 0.02
-
-        self.leds = LEDController(0, 112)  # broken amount is 46
-
-        self.pigeon = Pigeon2(30,canbus="can0")
-
-        self.fms = DriverStation.isFMSAttached()
-
-        # driving curve
-        self.sammi_curve = curve(
-            lambda x: 1.89 * x**3 + 0.61 * x, 0.0, deadband=0.1, max_mag=1.0
-        )
-
 
         # alerts
         AlertManager(self.logger)
@@ -355,129 +282,70 @@ class MyRobot(LemonRobot):
                 "Low Bandwidth Mode is active! Tuning is disabled.", AlertType.INFO
             )
 
-        self.pdh = PowerDistribution()
-
         self.estimated_field = Field2d()
-        # CameraServer().launch()
 
-        self.arm_visuize = Mechanism2d(20, 50)
-        self.arm_root = self.arm_visuize.getRoot("Arm Root", 10, 0)
-        self.elevator_ligament = self.arm_root.appendLigament("Elevator", 5, 90)
-        self.claw_ligament = self.elevator_ligament.appendLigament(
-            "Claw", 5, 0, color=Color8Bit(0, 150, 0)
-        )
-        SmartDashboard.putData("Arm", self.arm_visuize)
-        if DriverStation.getAlliance() == DriverStation.Alliance.kRed:
-            self.alliance = True
-        else:
-            self.alliance = False
-        # self.webserver = WebServer.getInstance()
-        # if not DriverStation.isFMSAttached():
-        #     self.webserver.start(
-        #         port=5800,
-        #         path=str(
-        #             Path(__file__).parent.resolve() / "deploy/elastic-layout.json"
-        #         ),
-        #     )
+    def on_enable(self):
+        self.create_swerve()
+        self.drivetrain.update_configs()
 
     def disabledPeriodic(self):
-        self.leds.move_across((5, 5, 0), 20, 20)
+        self.odometry.execute()
 
-    def enabledperiodic(self):
-        self.arm_control.engage()
-    
     def teleopInit(self):
         # initialize HIDs here in case they are changed after robot initializes
         self.primary = LemonInput(0)
-        self.secondary = LemonInput(1)
-        self.tertiary = LemonInput(2)
-
-        # self.commandprimary = CommandLemonInput(0
-
-        self.upper_algae_button_released = True
-        self.lower_algae_button_released = True
+        SmartDashboard.putData("Primary Controller", self.primary)
+        # self.secondary = LemonInput(1)
+        # self.tertiary = LemonInput(2)
 
     def teleopPeriodic(self):
-        self.drivetrain.drive_field_centric(
-            applyDeadband(self.primary.getLeftX(),0.03),
-            applyDeadband(self.primary.getLeftY(),0.03),
-            applyDeadband(self.primary.getRightX(),0.03),
-
-        )
         with self.consumeExceptions():
-            """
-            ARM
-            """
-            if self.elevator.error_detected():
-                self.arm_control.next_state("elevator_failsafe")
-            if self.secondary.getAButton():
-                self.arm_control.set(ElevatorHeight.L1, ClawAngle.TROUGH)
-            if self.secondary.getBButton():
-                self.arm_control.set(ElevatorHeight.L2, ClawAngle.BRANCH)
-            if self.secondary.getXButton():
-                self.arm_control.set(ElevatorHeight.L3, ClawAngle.BRANCH)
-            if self.secondary.getYButton():
-                self.arm_control.set(ElevatorHeight.L4, ClawAngle.BRANCH)
+            self.drivetrain.drive_field_centric(
+                applyDeadband(self.primary.getLeftX(), 0.03),
+                applyDeadband(self.primary.getLeftY(), 0.03),
+                applyDeadband(self.primary.getRightX(), 0.03),
+            )
 
-            if self.secondary.getStartButton():
-                self.arm_control.set(
-                    ElevatorHeight.STATION_CLOSE, ClawAngle.STATION_CLOSE
-                )
-            if self.secondary.getBackButton():
-                self.arm_control.set(ElevatorHeight.STATION_FAR, ClawAngle.STATION_FAR)
+        # with self.consumeExceptions():
+        #     """
+        #     SYSID
+        #     """
+        #     if self.tertiary.getLeftBumper():
+        #         if self.tertiary.getAButton():
+        #             self.sys_translation.quasistatic_forward()
+        #         if self.tertiary.getBButton():
+        #             self.sys_translation.quasistatic_reverse()
+        #         if self.tertiary.getXButton():
+        #             self.sys_translation.dynamic_forward()
+        #         if self.tertiary.getYButton():
+        #             self.sys_translation.dynamic_reverse()
+        #     elif self.tertiary.getRightBumper():
+        #         if self.tertiary.getAButton():
+        #             self.sys_steer.quasistatic_forward()
+        #         if self.tertiary.getBButton():
+        #             self.sys_steer.quasistatic_reverse()
+        #         if self.tertiary.getXButton():
+        #             self.sys_steer.dynamic_forward()
+        #         if self.tertiary.getYButton():
+        #             self.sys_steer.dynamic_reverse()
+        #     elif self.tertiary.getStartButton():
+        #         if self.tertiary.getAButton():
+        #             self.sys_rotation.quasistatic_forward()
+        #         if self.tertiary.getBButton():
+        #             self.sys_rotation.quasistatic_reverse()
+        #         if self.tertiary.getXButton():
+        #             self.sys_rotation.dynamic_forward()
+        #         if self.tertiary.getYButton():
+        #             self.sys_rotation.dynamic_reverse()
 
-            if self.secondary.getLeftTriggerAxis() > 0.5:
-                self.arm_control.set_wheel_voltage(
-                    8.0 * applyDeadband(self.secondary.getLeftTriggerAxis(), 0.1)
-                )
-            if self.secondary.getRightTriggerAxis() > 0.5:
-                self.arm_control.set_wheel_voltage(
-                    6.0 * applyDeadband(-self.secondary.getRightTriggerAxis(), 0.1)
-                )
+    def _display_auto_trajectory(self) -> None:
+        selected_auto = self._automodes.chooser.getSelected()
+        if isinstance(selected_auto, AutoBase):
+            selected_auto.display_trajectory()
 
-            if self.secondary.getRightBumper():
-                self.arm_control.set_wheel_voltage(-1)
-            self.elevator_ligament.setLength((self.elevator.get_height() * 39.37) + 5)
-            self.claw_ligament.setAngle(self.claw.get_angle() - 90)
-
-        with self.consumeExceptions():
-            """
-            CLIMBER
-            """
-
-            if self.primary.getTriangleButton():
-                self.climber.set_speed(-1)
-            if self.primary.getCrossButton():
-                self.climber.set_speed(1)
-
-        with self.consumeExceptions():
-            """
-            SYSID
-            """
-            if self.tertiary.getLeftBumper():
-                if self.tertiary.getAButton():
-                    self.sys_translation.quasistatic_forward()
-                if self.tertiary.getBButton():
-                    self.sys_translation.quasistatic_reverse()
-                if self.tertiary.getXButton():
-                    self.sys_translation.dynamic_forward()
-                if self.tertiary.getYButton():
-                    self.sys_translation.dynamic_reverse()
-            elif self.tertiary.getRightBumper():
-                if self.tertiary.getAButton():
-                    self.sys_steer.quasistatic_forward()
-                if self.tertiary.getBButton():
-                    self.sys_steer.quasistatic_reverse()
-                if self.tertiary.getXButton():
-                    self.sys_steer.dynamic_forward()
-                if self.tertiary.getYButton():
-                    self.sys_steer.dynamic_reverse()
-            elif self.tertiary.getStartButton():
-                if self.tertiary.getAButton():
-                    self.sys_rotation.quasistatic_forward()
-                if self.tertiary.getBButton():
-                    self.sys_rotation.quasistatic_reverse()
-                if self.tertiary.getXButton():
-                    self.sys_rotation.dynamic_forward()
-                if self.tertiary.getYButton():
-                    self.sys_rotation.dynamic_reverse()
+    @fms_feedback
+    def display_auto_state(self) -> None:
+        selected_auto = self._automodes.chooser.getSelected()
+        if isinstance(selected_auto, AutoBase):
+            return selected_auto.current_state
+        return "No Auto Selected"

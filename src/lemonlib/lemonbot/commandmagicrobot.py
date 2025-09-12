@@ -30,6 +30,7 @@ class LemonRobot(magicbot.MagicRobot):
 
         self.loop_time = self.control_loop_wait_time
         SmartDashboard.putData("CommandScheduler", self.commandscheduler)
+        print("LemonRobot initialized")
 
     def add_periodic(self, callback: Callable[[], None], period: float):
         print(f"Registering periodic: {callback.__name__}, every {period}s")
@@ -76,7 +77,11 @@ class LemonRobot(magicbot.MagicRobot):
 
     def _on_mode_enable_components(self):
         super()._on_mode_enable_components()
+        self.on_enable()
         self._restart_periodics()
+
+    def on_enable(self):
+        pass
 
     def _restart_periodics(self):
         self._stop_notifiers()

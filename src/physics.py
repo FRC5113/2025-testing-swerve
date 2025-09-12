@@ -17,6 +17,7 @@ import wpilib.simulation
 from pyfrc.physics.core import PhysicsInterface
 from pyfrc.physics import motor_cfgs, tankmodel
 from pyfrc.physics.units import units
+from lemonlib.simulation import LemonCameraSim
 
 import typing
 
@@ -39,7 +40,15 @@ class PhysicsEngine:
         self.physics_controller = physics_controller
         self.robot = robot
 
+        # Vision Simulation
+        self.vision_sim = LemonCameraSim(
+            robot.camera_front, robot.field_layout, fov=100.0, fps=20.0
+        )
+
     def update_sim(self, now: float, tm_diff: float) -> None:
         self.robot.drivetrain.sim_update(
             tm_diff, wpilib.RobotController.getBatteryVoltage()
         )
+
+        # Simulate Vision
+        self.vision_sim.update(self.robot.telemetry.get_pose())

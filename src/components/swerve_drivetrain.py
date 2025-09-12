@@ -16,6 +16,15 @@ from components.telemetry import Telemetry
 from magicbot import will_reset_to
 
 from typing import Optional, Union, List
+from wpilib import Field2d, SmartDashboard
+from choreo.trajectory import SwerveSample
+from wpimath.kinematics import (
+    ChassisSpeeds,
+    SwerveDrive4Kinematics,
+    SwerveModulePosition,
+    SwerveModuleState,
+)
+from wpimath.controller import HolonomicDriveController
 
 
 class SwerveDrive:
@@ -27,12 +36,17 @@ class SwerveDrive:
     back_left: SwerveModuleConstants
     back_right: SwerveModuleConstants
 
-    drive_profile: SmartProfile
-    steer_profile: SmartProfile
+    translation_profile: SmartProfile
+    rotation_profile: SmartProfile
+
+    telemetry: Telemetry
 
     drivetrain = None
 
     request = swerve.requests.Idle()
+    has_desired_pose = will_reset_to(False)
+
+    state = swerve.SwerveDrivetrain.SwerveDriveState()
 
     def setup(self) -> None:
 
@@ -48,11 +62,41 @@ class SwerveDrive:
                 self.back_right,
             ],
         )
+        self.desired_pose = Pose2d()
 
-        self.telemetry = Telemetry(self.max_speed)
-        self.drivetrain.register_telemetry(
-            lambda state: self.telemetry.telemeterize(state)
+    def get_telemetry(self, state: swerve.SwerveDrivetrain.SwerveDriveState):
+        return self.drivetrain.get_state()
+
+    def update_configs(self):
+        self.drivetrain = swerve.SwerveDrivetrain(
+            hardware.TalonFX,
+            hardware.TalonFX,
+            hardware.CANcoder,
+            self.drivetrain_constants,
+            [
+                self.front_left,
+                self.front_right,
+                self.back_left,
+                self.back_right,
+            ],
         )
+
+    def on_enable(self):
+        self.x_controller = self.translation_profile.create_wpi_pid_controller()
+        self.y_controller = self.translation_profile.create_wpi_pid_controller()
+        self.theta_controller = (
+            self.rotation_profile.create_wpi_profiled_pid_controller_radians()
+        )
+        self.holonomic_controller = HolonomicDriveController(
+            self.x_controller, self.y_controller, self.theta_controller
+        )
+        self.theta_controller.enableContinuousInput(-math.pi, math.pi)
+
+
+
+    def set_desired_pose(self, pose: Pose2d):
+        self.desired_pose = pose
+        self.has_desired_pose = True
 
     def drive_robot_centric(
         self,
@@ -74,7 +118,7 @@ class SwerveDrive:
         rotation: units.radians_per_second,
     ):
         self.request = (
-            swerve.requests.RobotCentric()
+            swerve.requests.FieldCentric()
             .with_velocity_x(x * self.max_speed)
             .with_velocity_y(y * self.max_speed)
             .with_rotational_rate(rotation * self.max_speed)
@@ -99,6 +143,30 @@ class SwerveDrive:
             vision_measurement_std_devs,
         )
 
+    def get_velocity(self) -> ChassisSpeeds:
+        return self.state.speeds
+
+    def follow_trajectory(self, sample: SwerveSample):
+        holospeeds = self.holonomic_controller.calculate(
+            self.state.pose,
+            sample.get_pose(),
+            0.0,
+            sample.get_pose().rotation(),
+        )
+        speeds = ChassisSpeeds(
+            sample.vx + holospeeds.vx,
+            sample.vy + holospeeds.vy,
+            sample.omega + holospeeds.omega,
+        )
+        self.request = (
+            swerve.requests.RobotCentric()
+            .with_velocity_x(speeds.vx)
+            .with_velocity_y(speeds.vy)
+            .with_rotational_rate(speeds.omega)
+        )
+
     def execute(self):
         # print(self.drive_control)
         self.drivetrain.set_control(self.request)
+        self.telemetry.telemeterize(self.drivetrain.get_state())
+

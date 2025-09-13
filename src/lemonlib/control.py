@@ -12,7 +12,9 @@ LEFT_RUMBLE = GenericHID.RumbleType.kLeftRumble
 
 class LemonInput(GenericHID, Sendable):
     """
-    LemonInput is a wrapper class for Xbox and PS5 controllers allowing automatic or manual detection and use in code.
+    LemonInput is a wrapper class for Xbox
+    and PS5 controllers allowing automatic
+    or manual detection and use in code.
     """
 
     class xbox_buttons(IntEnum):

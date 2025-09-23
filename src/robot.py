@@ -111,10 +111,10 @@ class MyRobot(LemonRobot):
             )
             self.module_constants.append(module_constant)
 
-        self.front_left = self.module_constants[2]
-        self.front_right = self.module_constants[0]
-        self.back_left = self.module_constants[3]
-        self.back_right = self.module_constants[1]
+        self.front_left = self.module_constants[0]
+        self.front_right = self.module_constants[1]
+        self.back_left = self.module_constants[2]
+        self.back_right = self.module_constants[3]
 
     def createObjects(self):
         """
@@ -178,21 +178,21 @@ class MyRobot(LemonRobot):
         ]
 
         self.x_positions: list[units.meters] = [
-            inchesToMeters(12.5),
-            inchesToMeters(12.5),
             inchesToMeters(-12.5),
+            inchesToMeters(12.5),
+            inchesToMeters(12.5),
             inchesToMeters(-12.5),
         ]
         self.y_positions: list[units.meters] = [
-            inchesToMeters(12.5),
             inchesToMeters(-12.5),
             inchesToMeters(12.5),
             inchesToMeters(-12.5),
+            inchesToMeters(12.5),
         ]
 
         self.steer_motor_inverted = False
         self.encoder_inverted = True
-        self.offset: units.meters = inchesToMeters(12.5)
+
 
         self.steer_profile = SmartProfile(
             "steer",
@@ -214,6 +214,7 @@ class MyRobot(LemonRobot):
                 "kD": 0.0,
                 "kS": 0.17,
                 "kV": 0.104,
+                "kA": 0.01
             },
             True,
         )

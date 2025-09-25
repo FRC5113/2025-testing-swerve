@@ -65,34 +65,7 @@ class MyRobot(LemonRobot):
     max_speed = SmartPreference(value=4.73)
     max_angular_rate = SmartPreference(value=4.71)
 
-    def create_swerve(self):
-        self.drive_controller = self.drive_profile.create_ctre_flywheel_controller()
-        self.steer_controller = self.steer_profile.create_ctre_turret_controller()
-
-        self.constants_creator.with_steer_motor_gains(self.steer_controller)
-        self.constants_creator.with_drive_motor_gains(self.drive_controller)
-
         
-        self.module_constants = []
-        for i in range(4):
-            module_constant = self.constants_creator.create_module_constants(
-                self.steer_motor_ids[i],
-                self.drive_motor_ids[i],
-                self.encoder_ids[i],
-                self.encoder_offsets[i],
-                self.x_positions[i],
-                self.y_positions[i],
-                self.invert_left_side if i in [0, 2] else self.invert_right_side,
-                self.steer_motor_inverted,
-                self.encoder_inverted,
-            )
-            self.module_constants.append(module_constant)
-
-        self.front_left = self.module_constants[0]
-        self.front_right = self.module_constants[1]
-        self.back_left = self.module_constants[2]
-        self.back_right = self.module_constants[3]
-
     def createObjects(self):
         """
         SWERVE
@@ -170,7 +143,6 @@ class MyRobot(LemonRobot):
         self.steer_motor_inverted = True
         self.encoder_inverted = False
 
-
         self.steer_profile = SmartProfile(
             "steer",
             {
@@ -181,7 +153,7 @@ class MyRobot(LemonRobot):
                 "kV": 0.375,
                 "kA": 0.0,
             },
-            True,
+            not self.low_bandwidth,
         )
         self.drive_profile = SmartProfile(
             "drive",
@@ -193,7 +165,7 @@ class MyRobot(LemonRobot):
                 "kV": 0.104,
                 "kA": 0.01
             },
-            True,
+            not self.low_bandwidth,
         )
         self.translation_profile = SmartProfile(
             "translation",
@@ -242,7 +214,26 @@ class MyRobot(LemonRobot):
             .with_steer_friction_voltage(self.steer_friction_voltage)
             .with_drive_friction_voltage(self.drive_friction_voltage)
         )
-        self.create_swerve()
+
+        self.module_constants = []
+        for i in range(4):
+            module_constant = self.constants_creator.create_module_constants(
+                self.steer_motor_ids[i],
+                self.drive_motor_ids[i],
+                self.encoder_ids[i],
+                self.encoder_offsets[i],
+                self.x_positions[i],
+                self.y_positions[i],
+                self.invert_left_side if i in [0, 2] else self.invert_right_side,
+                self.steer_motor_inverted,
+                self.encoder_inverted,
+            )
+            self.module_constants.append(module_constant)
+
+        self.front_left = self.module_constants[0]
+        self.front_right = self.module_constants[1]
+        self.back_left = self.module_constants[2]
+        self.back_right = self.module_constants[3]
 
         """
         ODOMETRY
@@ -287,17 +278,13 @@ class MyRobot(LemonRobot):
 
         self.estimated_field = Field2d()
 
-    def on_enable(self):
-        self.create_swerve()
-        self.drivetrain.update_configs()
-
     def disabledPeriodic(self):
         self.odometry.execute()
 
     def teleopInit(self):
         # initialize HIDs here in case they are changed after robot initializes
         self.primary = LemonInput(0)
-        SmartDashboard.putData("Primary Controller", self.primary)
+        # SmartDashboard.putData("Primary Controller", self.primary)
         # self.secondary = LemonInput(1)
         # self.tertiary = LemonInput(2)
 

@@ -31,8 +31,6 @@ class Telemetry(Sendable):
         """
         SignalLogger.start()
 
-
-
     def telemeterize(self, state: swerve.SwerveDrivetrain.SwerveDriveState):
         """
         Accept the swerve drive state and telemeterize it to SmartDashboard and SignalLogger.
@@ -53,7 +51,6 @@ class Telemetry(Sendable):
             "DriveState/OdometryPeriod", state.odometry_period, "seconds"
         )
 
-
         self.estimated_field.setRobotPose(state.pose)
         SmartDashboard.putData("Estimated Field", self.estimated_field)
 
@@ -62,9 +59,11 @@ class Telemetry(Sendable):
         SmartDashboard.putNumberArray("Swerve Setpoints", module_states_array)
         SmartDashboard.putNumberArray("Swerve Measurements", module_targets_array)
         SmartDashboard.putData("Swerve Drive", self)
+        
 
     def get_pose(self) -> Pose2d:
         return self.state.pose
+
     def initSendable(self, builder: SendableBuilder) -> None:
         builder.setSmartDashboardType("SwerveDrive")
         builder.addDoubleProperty(
@@ -113,8 +112,6 @@ class Telemetry(Sendable):
             lambda: self.swerve_module_states[3].angle.degrees(),
             lambda _: None,
         )
-
-    
 
     def execute(self):
         pass

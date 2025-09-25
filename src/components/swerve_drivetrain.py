@@ -2,10 +2,10 @@ from commands2 import Command, Subsystem
 from commands2.sysid import SysIdRoutine
 import math
 from phoenix6 import SignalLogger, swerve, units, utils, hardware
-from phoenix6.configs import TalonFXConfiguration, CANcoderConfiguration
+from phoenix6.configs import TalonFXConfiguration, CANcoderConfiguration,TalonFXConfigurator
 from phoenix6.swerve import SwerveModuleConstants, SwerveDrivetrainConstants
 from typing import Callable, overload
-from wpilib import DriverStation, Notifier, RobotController
+from wpilib import DriverStation, Notifier, RobotController,RobotBase
 from wpilib.sysid import SysIdRoutineLog
 from wpimath.geometry import Pose2d, Rotation2d
 
@@ -25,6 +25,7 @@ from wpimath.kinematics import (
     SwerveModuleState,
 )
 from wpimath.controller import HolonomicDriveController
+from lemonlib.smart import SmartNT
 
 
 class SwerveDrive:
@@ -36,6 +37,8 @@ class SwerveDrive:
     back_left: SwerveModuleConstants
     back_right: SwerveModuleConstants
 
+    drive_profile: SmartProfile
+    steer_profile: SmartProfile
     translation_profile: SmartProfile
     rotation_profile: SmartProfile
 
@@ -45,6 +48,10 @@ class SwerveDrive:
 
     request = swerve.requests.Idle()
     has_desired_pose = will_reset_to(False)
+
+    x_speed = will_reset_to(0)
+    y_speed = will_reset_to(0)
+    rot_speed = will_reset_to(0)
 
     state = swerve.SwerveDrivetrain.SwerveDriveState()
 
@@ -63,35 +70,48 @@ class SwerveDrive:
             ],
         )
         self.desired_pose = Pose2d()
+        self.smart_nt = SmartNT("SwerveController")
 
     def get_telemetry(self, state: swerve.SwerveDrivetrain.SwerveDriveState):
         return self.drivetrain.get_state()
 
-    def update_configs(self):
-        self.drivetrain = swerve.SwerveDrivetrain(
-            hardware.TalonFX,
-            hardware.TalonFX,
-            hardware.CANcoder,
-            self.drivetrain_constants,
-            [
-                self.front_left,
-                self.front_right,
-                self.back_left,
-                self.back_right,
-            ],
-        )
-
     def on_enable(self):
+        if RobotBase.isSimulation():
+            self.drivetrain.tare_everything()
         self.x_controller = self.translation_profile.create_wpi_pid_controller()
         self.y_controller = self.translation_profile.create_wpi_pid_controller()
-        self.theta_controller = (
-            self.rotation_profile.create_wpi_profiled_pid_controller_radians()
-        )
-        self.holonomic_controller = HolonomicDriveController(
-            self.x_controller, self.y_controller, self.theta_controller
-        )
-        self.theta_controller.enableContinuousInput(-math.pi, math.pi)
 
+        self.drive_controller = self.drive_profile.create_ctre_flywheel_controller()
+        self.steer_controller = self.steer_profile.create_ctre_turret_controller()
+
+        self.rotation_controller = self.rotation_profile.create_wpi_profiled_pid_controller_radians()
+
+        self.rotation_controller.enableContinuousInput(-math.pi, math.pi)
+
+        drive_config = TalonFXConfiguration().with_slot0(self.drive_controller)
+        steer_config = TalonFXConfiguration().with_slot0(self.steer_controller)
+
+        for i in range(4):
+            module = self.drivetrain.get_module(i)
+            drive = module.drive_motor
+            steer = module.steer_motor
+
+            drive.configurator.apply(drive_config)
+            steer.configurator.apply(steer_config)
+
+            self.smart_nt.put_number(f"Drive/Module{i}/Error", drive.get_closed_loop_error().value)
+            self.smart_nt.put_number(f"Drive/Module{i}/Setpoint", drive.get_closed_loop_output().value)
+            self.smart_nt.put_number(f"Drive/Module{i}/Position", drive.get_closed_loop_reference().value)
+            self.smart_nt.put_number(f"Drive/Module{i}/FeedForward", drive.get_closed_loop_feed_forward().value)
+
+            self.smart_nt.put_number(f"Steer/Module{i}/Error", steer.get_closed_loop_error().value)
+            self.smart_nt.put_number(f"Steer/Module{i}/Setpoint", steer.get_closed_loop_output().value)
+            self.smart_nt.put_number(f"Steer/Module{i}/Position", steer.get_closed_loop_reference().value)
+            self.smart_nt.put_number(f"Steer/Module{i}/FeedForward", steer.get_closed_loop_feed_forward().value)
+
+        self.holonomic_controller = HolonomicDriveController(
+            self.x_controller, self.y_controller, self.rotation_controller
+        )
 
 
     def set_desired_pose(self, pose: Pose2d):
@@ -104,6 +124,9 @@ class SwerveDrive:
         y: units.meters_per_second,
         rotation: units.radians_per_second,
     ):
+        self.x_speed = x
+        self.y_speed = y
+        self.rot_speed = rotation
         self.request = (
             swerve.requests.RobotCentric()
             .with_velocity_x(x * self.max_speed)
@@ -117,6 +140,9 @@ class SwerveDrive:
         y: units.meters_per_second,
         rotation: units.radians_per_second,
     ):
+        self.x_speed = x
+        self.y_speed = y
+        self.rot_speed = rotation
         self.request = (
             swerve.requests.FieldCentric()
             .with_velocity_x(x * self.max_speed)

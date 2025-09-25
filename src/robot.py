@@ -69,33 +69,10 @@ class MyRobot(LemonRobot):
         self.drive_controller = self.drive_profile.create_ctre_flywheel_controller()
         self.steer_controller = self.steer_profile.create_ctre_turret_controller()
 
-        self.constants_creator: swerve.SwerveModuleConstantsFactory[
-            TalonFXConfiguration,
-            TalonFXConfiguration,
-            CANcoderConfiguration,
-        ] = (
-            swerve.SwerveModuleConstantsFactory()
-            .with_drive_motor_gear_ratio(self.drive_gear_ratio)
-            .with_steer_motor_gear_ratio(self.steer_gear_ratio)
-            .with_coupling_gear_ratio(self.couple_ratio)
-            .with_wheel_radius(self.wheel_radius)
-            .with_steer_motor_gains(self.steer_controller)
-            .with_drive_motor_gains(self.drive_controller)
-            .with_steer_motor_closed_loop_output(self.steer_closed_loop_output)
-            .with_drive_motor_closed_loop_output(self.drive_closed_loop_output)
-            .with_slip_current(self.slip_current)
-            .with_speed_at12_volts(self.speed_at_12_volts)
-            .with_drive_motor_type(self.drive_motor_type)
-            .with_steer_motor_type(self.steer_motor_type)
-            .with_feedback_source(self.steer_feedback_type)
-            .with_drive_motor_initial_configs(self.drive_initial_configs)
-            .with_steer_motor_initial_configs(self.steer_initial_configs)
-            .with_encoder_initial_configs(self.encoder_initial_configs)
-            .with_steer_inertia(self.steer_inertia)
-            .with_drive_inertia(self.drive_inertia)
-            .with_steer_friction_voltage(self.steer_friction_voltage)
-            .with_drive_friction_voltage(self.drive_friction_voltage)
-        )
+        self.constants_creator.with_steer_motor_gains(self.steer_controller)
+        self.constants_creator.with_drive_motor_gains(self.drive_controller)
+
+        
         self.module_constants = []
         for i in range(4):
             module_constant = self.constants_creator.create_module_constants(
@@ -171,27 +148,27 @@ class MyRobot(LemonRobot):
         self.steer_motor_ids = [22, 32, 12, 42]
         self.encoder_ids = [23, 33, 13, 43]
         self.encoder_offsets: list[float] = [
-            -0.15380859375,
-            0.250244140625,
-            0.314208984375,
-            0.33642578125,
+            0.350341796875,
+            -0.245361328125,
+            0.2060546875,
+            -0.335205078125,
         ]
 
         self.x_positions: list[units.meters] = [
+            inchesToMeters(12.5),
+            inchesToMeters(12.5),
             inchesToMeters(-12.5),
-            inchesToMeters(12.5),
-            inchesToMeters(12.5),
             inchesToMeters(-12.5),
         ]
         self.y_positions: list[units.meters] = [
-            inchesToMeters(-12.5),
             inchesToMeters(12.5),
             inchesToMeters(-12.5),
             inchesToMeters(12.5),
+            inchesToMeters(-12.5),
         ]
 
-        self.steer_motor_inverted = False
-        self.encoder_inverted = True
+        self.steer_motor_inverted = True
+        self.encoder_inverted = False
 
 
         self.steer_profile = SmartProfile(
@@ -239,6 +216,31 @@ class MyRobot(LemonRobot):
                 "kMaxInput": math.pi,
             },
             not self.low_bandwidth,
+        )
+        self.constants_creator: swerve.SwerveModuleConstantsFactory[
+            TalonFXConfiguration,
+            TalonFXConfiguration,
+            CANcoderConfiguration,
+        ] = (
+            swerve.SwerveModuleConstantsFactory()
+            .with_drive_motor_gear_ratio(self.drive_gear_ratio)
+            .with_steer_motor_gear_ratio(self.steer_gear_ratio)
+            .with_coupling_gear_ratio(self.couple_ratio)
+            .with_wheel_radius(self.wheel_radius)
+            .with_steer_motor_closed_loop_output(self.steer_closed_loop_output)
+            .with_drive_motor_closed_loop_output(self.drive_closed_loop_output)
+            .with_slip_current(self.slip_current)
+            .with_speed_at12_volts(self.speed_at_12_volts)
+            .with_drive_motor_type(self.drive_motor_type)
+            .with_steer_motor_type(self.steer_motor_type)
+            .with_feedback_source(self.steer_feedback_type)
+            .with_drive_motor_initial_configs(self.drive_initial_configs)
+            .with_steer_motor_initial_configs(self.steer_initial_configs)
+            .with_encoder_initial_configs(self.encoder_initial_configs)
+            .with_steer_inertia(self.steer_inertia)
+            .with_drive_inertia(self.drive_inertia)
+            .with_steer_friction_voltage(self.steer_friction_voltage)
+            .with_drive_friction_voltage(self.drive_friction_voltage)
         )
         self.create_swerve()
 

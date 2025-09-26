@@ -26,7 +26,7 @@
   {
     "name": "/Preferences/steer_kP",
     "type": "double",
-    "value": 100.0,
+    "value": 1.0,
     "properties": {
       "persistent": true
     }
@@ -42,7 +42,7 @@
   {
     "name": "/Preferences/steer_kD",
     "type": "double",
-    "value": 0.5,
+    "value": 0.0,
     "properties": {
       "persistent": true
     }
@@ -50,7 +50,7 @@
   {
     "name": "/Preferences/steer_kS",
     "type": "double",
-    "value": 0.1,
+    "value": 0.0,
     "properties": {
       "persistent": true
     }
@@ -58,7 +58,7 @@
   {
     "name": "/Preferences/steer_kV",
     "type": "double",
-    "value": 2.66,
+    "value": 0.0,
     "properties": {
       "persistent": true
     }
@@ -74,7 +74,7 @@
   {
     "name": "/Preferences/drive_kP",
     "type": "double",
-    "value": 0.1,
+    "value": 10.0,
     "properties": {
       "persistent": true
     }
@@ -338,7 +338,7 @@
   {
     "name": "/Preferences/drive_kA",
     "type": "double",
-    "value": 0.01,
+    "value": 0.0,
     "properties": {
       "persistent": true
     }

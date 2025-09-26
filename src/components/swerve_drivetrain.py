@@ -53,6 +53,10 @@ class SwerveDrive:
     y_speed = will_reset_to(0)
     rot_speed = will_reset_to(0)
 
+    # x_speed = 0
+    # y_speed = 0
+    # rot_speed = 0
+
     state = swerve.SwerveDrivetrain.SwerveDriveState()
 
     def setup(self) -> None:
@@ -71,6 +75,10 @@ class SwerveDrive:
         )
         self.desired_pose = Pose2d()
         self.smart_nt = SmartNT("SwerveController")
+
+        self.pigeon = self.drivetrain.pigeon2
+        SmartDashboard.putData("Pigeon", self.pigeon)
+        self.drivetrain.set_operator_perspective_forward(self.pigeon.getRotation2d())
 
     def get_telemetry(self, state: swerve.SwerveDrivetrain.SwerveDriveState):
         return self.drivetrain.get_state()
@@ -99,19 +107,25 @@ class SwerveDrive:
             drive.configurator.apply(drive_config)
             steer.configurator.apply(steer_config)
 
-            self.smart_nt.put_number(f"Drive/Module{i}/Error", drive.get_closed_loop_error().value)
-            self.smart_nt.put_number(f"Drive/Module{i}/Setpoint", drive.get_closed_loop_output().value)
-            self.smart_nt.put_number(f"Drive/Module{i}/Position", drive.get_closed_loop_reference().value)
-            self.smart_nt.put_number(f"Drive/Module{i}/FeedForward", drive.get_closed_loop_feed_forward().value)
+            SmartDashboard.putData(f"Drive/Module{i}", drive)
+            SmartDashboard.putData(f"Steer/Module{i}", steer)
 
-            self.smart_nt.put_number(f"Steer/Module{i}/Error", steer.get_closed_loop_error().value)
-            self.smart_nt.put_number(f"Steer/Module{i}/Setpoint", steer.get_closed_loop_output().value)
-            self.smart_nt.put_number(f"Steer/Module{i}/Position", steer.get_closed_loop_reference().value)
-            self.smart_nt.put_number(f"Steer/Module{i}/FeedForward", steer.get_closed_loop_feed_forward().value)
+            # self.smart_nt.put_number(f"Drive/Module{i}/Error", drive.get_closed_loop_error().value)
+            # self.smart_nt.put_number(f"Drive/Module{i}/Setpoint", drive.get_closed_loop_output().value)
+            # self.smart_nt.put_number(f"Drive/Module{i}/Position", drive.get_closed_loop_reference().value)
+            # self.smart_nt.put_number(f"Drive/Module{i}/FeedForward", drive.get_closed_loop_feed_forward().value)
+
+            # self.smart_nt.put_number(f"Steer/Module{i}/Error", steer.get_closed_loop_error().value)
+            # self.smart_nt.put_number(f"Steer/Module{i}/Setpoint", steer.get_closed_loop_output().value)
+            # self.smart_nt.put_number(f"Steer/Module{i}/Position", steer.get_closed_loop_reference().value)
+            # self.smart_nt.put_number(f"Steer/Module{i}/FeedForward", steer.get_closed_loop_feed_forward().value)
 
         self.holonomic_controller = HolonomicDriveController(
             self.x_controller, self.y_controller, self.rotation_controller
         )
+
+    def set_forward(self):
+        self.drivetrain.set_operator_perspective_forward(self.pigeon.getRotation2d())
 
 
     def set_desired_pose(self, pose: Pose2d):
@@ -145,10 +159,11 @@ class SwerveDrive:
         self.rot_speed = rotation
         self.request = (
             swerve.requests.FieldCentric()
-            .with_velocity_x(x * self.max_speed)
-            .with_velocity_y(y * self.max_speed)
-            .with_rotational_rate(rotation * self.max_speed)
+            .with_velocity_x(self.x_speed)
+            .with_velocity_y(self.y_speed)
+            .with_rotational_rate(self.rot_speed)
         )
+        print(self.request.velocity_x, self.request.velocity_y, self.request.rotational_rate)
 
     def sim_update(self, delta_time: units.second, battery_voltage: units.volt):
         self.drivetrain.update_sim_state(delta_time, battery_voltage)
@@ -176,23 +191,25 @@ class SwerveDrive:
         holospeeds = self.holonomic_controller.calculate(
             self.state.pose,
             sample.get_pose(),
-            0.0,
-            sample.get_pose().rotation(),
+            math.sqrt(math.pow(sample.vx, 2) + math.pow(sample.vy, 2)),
+            sample.heading,
         )
         speeds = ChassisSpeeds(
             sample.vx + holospeeds.vx,
             sample.vy + holospeeds.vy,
             sample.omega + holospeeds.omega,
         )
+        print(holospeeds)
         self.request = (
             swerve.requests.RobotCentric()
-            .with_velocity_x(speeds.vx)
-            .with_velocity_y(speeds.vy)
-            .with_rotational_rate(speeds.omega)
+            .with_velocity_x(sample.vx)
+            .with_velocity_y(sample.vy)
+            .with_rotational_rate(sample.omega)
         )
 
     def execute(self):
         # print(self.drive_control)
         self.drivetrain.set_control(self.request)
+        
         self.telemetry.telemeterize(self.drivetrain.get_state())
 

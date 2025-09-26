@@ -77,7 +77,7 @@ class MyRobot(LemonRobot):
         self.drive_motor_type = swerve.DriveMotorArrangement.TALON_FX_INTEGRATED
         self.steer_motor_type = swerve.SteerMotorArrangement.TALON_FX_INTEGRATED
 
-        self.steer_feedback_type = swerve.SteerFeedbackType.REMOTE_CANCODER
+        self.steer_feedback_type = swerve.SteerFeedbackType.FUSED_CANCODER
 
         self.slip_current: units.amperes = 120.0
 
@@ -128,16 +128,16 @@ class MyRobot(LemonRobot):
         ]
 
         self.x_positions: list[units.meters] = [
-            inchesToMeters(12.5),
-            inchesToMeters(12.5),
-            inchesToMeters(-12.5),
-            inchesToMeters(-12.5),
+            0.381,
+            0.381,
+            -0.381,
+            -0.381,
         ]
         self.y_positions: list[units.meters] = [
-            inchesToMeters(12.5),
-            inchesToMeters(-12.5),
-            inchesToMeters(12.5),
-            inchesToMeters(-12.5),
+            0.381,
+            -0.381,
+            0.381,
+            -0.381,
         ]
 
         self.steer_motor_inverted = True
@@ -295,6 +295,8 @@ class MyRobot(LemonRobot):
                 applyDeadband(self.primary.getLeftY(), 0.03),
                 applyDeadband(self.primary.getRightX(), 0.03),
             )
+            if self.primary.getXButton():
+                self.drivetrain.set_forward(self.pigeon.getRotation2d())
 
         # with self.consumeExceptions():
         #     """

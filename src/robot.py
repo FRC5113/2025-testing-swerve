@@ -77,14 +77,14 @@ class MyRobot(LemonRobot):
         self.drive_motor_type = swerve.DriveMotorArrangement.TALON_FX_INTEGRATED
         self.steer_motor_type = swerve.SteerMotorArrangement.TALON_FX_INTEGRATED
 
-        self.steer_feedback_type = swerve.SteerFeedbackType.FUSED_CANCODER
+        self.steer_feedback_type = swerve.SteerFeedbackType.REMOTE_CANCODER
 
         self.slip_current: units.amperes = 120.0
 
         self.drive_initial_configs = configs.TalonFXConfiguration()
         self.steer_initial_configs = configs.TalonFXConfiguration().with_current_limits(
             configs.CurrentLimitsConfigs()
-            .with_stator_current_limit(60)
+            .with_stator_current_limit(120)
             .with_stator_current_limit_enable(True)
         )
         self.encoder_initial_configs = configs.CANcoderConfiguration()
@@ -98,7 +98,7 @@ class MyRobot(LemonRobot):
 
         self.drive_gear_ratio = 6.746031746031747
         self.steer_gear_ratio = 21.428571428571427
-        self.wheel_radius: units.meters = inchesToMeters(2)
+        self.wheel_radius: units.meters = 0.0508
 
         self.invert_left_side = False
         self.invert_right_side = True
@@ -107,8 +107,9 @@ class MyRobot(LemonRobot):
 
         self.steer_inertia: units.kilogram_square_meters = 0.01
         self.drive_inertia: units.kilogram_square_meters = 0.01
-        self.steer_friction_voltage: units.volts = 0.2
-        self.drive_friction_voltage: units.volts = 0.2
+        self.steer_friction_voltage: units.volts = 0.0
+        self.drive_friction_voltage: units.volts = 0.0
+        
 
         self.drivetrain_constants = (
             swerve.SwerveDrivetrainConstants()
@@ -139,6 +140,7 @@ class MyRobot(LemonRobot):
             0.381,
             -0.381,
         ]
+
 
         self.steer_motor_inverted = True
         self.encoder_inverted = False
@@ -296,7 +298,8 @@ class MyRobot(LemonRobot):
                 applyDeadband(self.primary.getRightX(), 0.03),
             )
             if self.primary.getXButton():
-                self.drivetrain.set_forward(self.pigeon.getRotation2d())
+                self.drivetrain.set_forward()
+            
 
         # with self.consumeExceptions():
         #     """

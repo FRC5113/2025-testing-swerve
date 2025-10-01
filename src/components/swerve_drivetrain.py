@@ -2,7 +2,7 @@ from commands2 import Command, Subsystem
 from commands2.sysid import SysIdRoutine
 import math
 from phoenix6 import SignalLogger, swerve, units, utils, hardware
-from phoenix6.configs import TalonFXConfiguration, CANcoderConfiguration,TalonFXConfigurator
+from phoenix6.configs import TalonFXConfiguration, CANcoderConfiguration,TalonFXConfigurator,ClosedLoopGeneralConfigs
 from phoenix6.swerve import SwerveModuleConstants, SwerveDrivetrainConstants
 from typing import Callable, overload
 from wpilib import DriverStation, Notifier, RobotController,RobotBase
@@ -59,6 +59,8 @@ class SwerveDrive:
 
     state = swerve.SwerveDrivetrain.SwerveDriveState()
 
+    forward_oriantation = 0
+
     def setup(self) -> None:
 
         self.drivetrain = swerve.SwerveDrivetrain(
@@ -97,7 +99,7 @@ class SwerveDrive:
         self.rotation_controller.enableContinuousInput(-math.pi, math.pi)
 
         drive_config = TalonFXConfiguration().with_slot0(self.drive_controller)
-        steer_config = TalonFXConfiguration().with_slot0(self.steer_controller)
+        steer_config = TalonFXConfiguration().with_slot0(self.steer_controller).with_closed_loop_general(ClosedLoopGeneralConfigs().with_continuous_wrap(True))
 
         for i in range(4):
             module = self.drivetrain.get_module(i)
@@ -107,26 +109,14 @@ class SwerveDrive:
             drive.configurator.apply(drive_config)
             steer.configurator.apply(steer_config)
 
-            SmartDashboard.putData(f"Drive/Module{i}", drive)
-            SmartDashboard.putData(f"Steer/Module{i}", steer)
-
-            # self.smart_nt.put_number(f"Drive/Module{i}/Error", drive.get_closed_loop_error().value)
-            # self.smart_nt.put_number(f"Drive/Module{i}/Setpoint", drive.get_closed_loop_output().value)
-            # self.smart_nt.put_number(f"Drive/Module{i}/Position", drive.get_closed_loop_reference().value)
-            # self.smart_nt.put_number(f"Drive/Module{i}/FeedForward", drive.get_closed_loop_feed_forward().value)
-
-            # self.smart_nt.put_number(f"Steer/Module{i}/Error", steer.get_closed_loop_error().value)
-            # self.smart_nt.put_number(f"Steer/Module{i}/Setpoint", steer.get_closed_loop_output().value)
-            # self.smart_nt.put_number(f"Steer/Module{i}/Position", steer.get_closed_loop_reference().value)
-            # self.smart_nt.put_number(f"Steer/Module{i}/FeedForward", steer.get_closed_loop_feed_forward().value)
-
         self.holonomic_controller = HolonomicDriveController(
             self.x_controller, self.y_controller, self.rotation_controller
         )
 
     def set_forward(self):
-        self.drivetrain.set_operator_perspective_forward(self.pigeon.getRotation2d())
-
+        rot = self.pigeon.getRotation2d()
+        self.drivetrain.set_operator_perspective_forward(rot)
+        self.forward_oriantation = rot.degrees()
 
     def set_desired_pose(self, pose: Pose2d):
         self.desired_pose = pose
@@ -159,11 +149,12 @@ class SwerveDrive:
         self.rot_speed = rotation
         self.request = (
             swerve.requests.FieldCentric()
-            .with_velocity_x(self.x_speed)
-            .with_velocity_y(self.y_speed)
-            .with_rotational_rate(self.rot_speed)
+            .with_forward_perspective(swerve.requests.ForwardPerspectiveValue.OPERATOR_PERSPECTIVE)
+            .with_velocity_x(self.x_speed * self.max_speed)
+            .with_velocity_y(self.y_speed * self.max_speed)
+            .with_rotational_rate(self.rot_speed * self.max_speed)
         )
-        print(self.request.velocity_x, self.request.velocity_y, self.request.rotational_rate)
+        # print(self.request.velocity_x, self.request.velocity_y, self.request.rotational_rate)
 
     def sim_update(self, delta_time: units.second, battery_voltage: units.volt):
         self.drivetrain.update_sim_state(delta_time, battery_voltage)
@@ -208,8 +199,7 @@ class SwerveDrive:
         )
 
     def execute(self):
-        # print(self.drive_control)
         self.drivetrain.set_control(self.request)
-        
         self.telemetry.telemeterize(self.drivetrain.get_state())
+        print(self.drivetrain.modules[0].steer_motor.get_closed_loop_output().value)
 

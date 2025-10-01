@@ -61,10 +61,12 @@ class Telemetry(Sendable):
         module_states_array = []
         module_targets_array = []
         for i in range(4):
-            module_states_array.append(state.module_states[i].angle.radians())
+            module_states_array.append(state.module_states[i].angle.degrees())
             module_states_array.append(state.module_states[i].speed)
-            module_targets_array.append(state.module_targets[i].angle.radians())
+            module_targets_array.append(state.module_targets[i].angle.degrees())
             module_targets_array.append(state.module_targets[i].speed)
+
+        
 
         SignalLogger.write_double_array("DriveState/Pose", pose_array)
         SignalLogger.write_double_array("DriveState/ModuleStates", module_states_array)

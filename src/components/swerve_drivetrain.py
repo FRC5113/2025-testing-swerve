@@ -2,10 +2,15 @@ from commands2 import Command, Subsystem
 from commands2.sysid import SysIdRoutine
 import math
 from phoenix6 import SignalLogger, swerve, units, utils, hardware
-from phoenix6.configs import TalonFXConfiguration, CANcoderConfiguration,TalonFXConfigurator,ClosedLoopGeneralConfigs
+from phoenix6.configs import (
+    TalonFXConfiguration,
+    CANcoderConfiguration,
+    TalonFXConfigurator,
+    ClosedLoopGeneralConfigs,
+)
 from phoenix6.swerve import SwerveModuleConstants, SwerveDrivetrainConstants
 from typing import Callable, overload
-from wpilib import DriverStation, Notifier, RobotController,RobotBase
+from wpilib import DriverStation, Notifier, RobotController, RobotBase
 from wpilib.sysid import SysIdRoutineLog
 from wpimath.geometry import Pose2d, Rotation2d
 
@@ -59,10 +64,7 @@ class SwerveDrive:
 
     state = swerve.SwerveDrivetrain.SwerveDriveState()
 
-    forward_oriantation = 0
-
     def setup(self) -> None:
-
         self.drivetrain = swerve.SwerveDrivetrain(
             hardware.TalonFX,
             hardware.TalonFX,
@@ -81,25 +83,24 @@ class SwerveDrive:
         self.pigeon = self.drivetrain.pigeon2
         SmartDashboard.putData("Pigeon", self.pigeon)
         self.drivetrain.set_operator_perspective_forward(self.pigeon.getRotation2d())
+        self.last_sim_time: units.second = 0.0
 
     def get_telemetry(self, state: swerve.SwerveDrivetrain.SwerveDriveState):
         return self.drivetrain.get_state()
 
+    # on enable it grabs the pid values and puts them on the motors to be used
     def on_enable(self):
-        if RobotBase.isSimulation():
-            self.drivetrain.tare_everything()
-        self.x_controller = self.translation_profile.create_wpi_pid_controller()
-        self.y_controller = self.translation_profile.create_wpi_pid_controller()
-
         self.drive_controller = self.drive_profile.create_ctre_flywheel_controller()
         self.steer_controller = self.steer_profile.create_ctre_turret_controller()
 
-        self.rotation_controller = self.rotation_profile.create_wpi_profiled_pid_controller_radians()
-
-        self.rotation_controller.enableContinuousInput(-math.pi, math.pi)
-
         drive_config = TalonFXConfiguration().with_slot0(self.drive_controller)
-        steer_config = TalonFXConfiguration().with_slot0(self.steer_controller).with_closed_loop_general(ClosedLoopGeneralConfigs().with_continuous_wrap(True))
+        steer_config = (
+            TalonFXConfiguration()
+            .with_slot0(self.steer_controller)
+            .with_closed_loop_general(
+                ClosedLoopGeneralConfigs().with_continuous_wrap(True)
+            )
+        )
 
         for i in range(4):
             module = self.drivetrain.get_module(i)
@@ -109,6 +110,16 @@ class SwerveDrive:
             drive.configurator.apply(drive_config)
             steer.configurator.apply(steer_config)
 
+        if RobotBase.isSimulation():
+            self.drivetrain.tare_everything()
+
+        self.x_controller = self.translation_profile.create_wpi_pid_controller()
+        self.y_controller = self.translation_profile.create_wpi_pid_controller()
+        self.rotation_controller = (
+            self.rotation_profile.create_wpi_profiled_pid_controller_radians()
+        )
+        self.rotation_controller.enableContinuousInput(-math.pi, math.pi)
+
         self.holonomic_controller = HolonomicDriveController(
             self.x_controller, self.y_controller, self.rotation_controller
         )
@@ -116,7 +127,6 @@ class SwerveDrive:
     def set_forward(self):
         rot = self.pigeon.getRotation2d()
         self.drivetrain.set_operator_perspective_forward(rot)
-        self.forward_oriantation = rot.degrees()
 
     def set_desired_pose(self, pose: Pose2d):
         self.desired_pose = pose
@@ -133,9 +143,9 @@ class SwerveDrive:
         self.rot_speed = rotation
         self.request = (
             swerve.requests.RobotCentric()
-            .with_velocity_x(x * self.max_speed)
-            .with_velocity_y(y * self.max_speed)
-            .with_rotational_rate(rotation * self.max_speed)
+            .with_velocity_x(self.x_speed * self.max_speed)
+            .with_velocity_y(self.y_speed * self.max_speed)
+            .with_rotational_rate(self.rot_speed * self.max_angular_rate)
         )
 
     def drive_field_centric(
@@ -149,15 +159,18 @@ class SwerveDrive:
         self.rot_speed = rotation
         self.request = (
             swerve.requests.FieldCentric()
-            .with_forward_perspective(swerve.requests.ForwardPerspectiveValue.OPERATOR_PERSPECTIVE)
+            .with_forward_perspective(
+                swerve.requests.ForwardPerspectiveValue.OPERATOR_PERSPECTIVE
+            )
             .with_velocity_x(self.x_speed * self.max_speed)
             .with_velocity_y(self.y_speed * self.max_speed)
-            .with_rotational_rate(self.rot_speed * self.max_speed)
+            .with_rotational_rate(self.rot_speed * self.max_angular_rate)
         )
-        # print(self.request.velocity_x, self.request.velocity_y, self.request.rotational_rate)
 
-    def sim_update(self, delta_time: units.second, battery_voltage: units.volt):
-        self.drivetrain.update_sim_state(delta_time, battery_voltage)
+    def sim_update(self, delta_time: float):
+        self.drivetrain.update_sim_state(
+            delta_time, RobotController.getBatteryVoltage()
+        )
 
     def apply_request(self, request: swerve.requests.SwerveRequest):
         self.request = request
@@ -201,5 +214,3 @@ class SwerveDrive:
     def execute(self):
         self.drivetrain.set_control(self.request)
         self.telemetry.telemeterize(self.drivetrain.get_state())
-        print(self.drivetrain.modules[0].steer_motor.get_closed_loop_output().value)
-

@@ -1,11 +1,6 @@
 import math
 
-from lemonlib import (
-    LemonRobot,
-    LemonInput,
-    LemonCamera,
-    fms_feedback
-)
+from lemonlib import LemonRobot, LemonInput, LemonCamera, fms_feedback
 from lemonlib.smart import (
     SmartPreference,
     SmartProfile,
@@ -65,7 +60,6 @@ class MyRobot(LemonRobot):
     max_speed = SmartPreference(value=4.73)
     max_angular_rate = SmartPreference(value=4.71)
 
-        
     def createObjects(self):
         """
         SWERVE
@@ -101,7 +95,7 @@ class MyRobot(LemonRobot):
         self.wheel_radius: units.meters = 0.0508
 
         self.invert_left_side = False
-        self.invert_right_side = True
+        self.invert_right_side = False
 
         self.pigeon_id = 30
 
@@ -141,10 +135,10 @@ class MyRobot(LemonRobot):
             -0.381,
         ]
 
-
         self.steer_motor_inverted = True
         self.encoder_inverted = False
 
+        # PID values for the steering and driving motors
         self.steer_profile = SmartProfile(
             "steer",
             {
@@ -160,11 +154,11 @@ class MyRobot(LemonRobot):
         self.drive_profile = SmartProfile(
             "drive",
             {
-                "kP": 0.0,
-                "kI": 0.0,
-                "kD": 0.0,
-                "kS": 0.17,
-                "kV": 0.104,
+                "kP": 0.0, 
+                "kI": 0.0, 
+                "kD": 0.0, 
+                "kS": 0.17, 
+                "kV": 0.104, 
                 "kA": 0.01
             },
             not self.low_bandwidth,
@@ -191,6 +185,8 @@ class MyRobot(LemonRobot):
             },
             not self.low_bandwidth,
         )
+
+        # create the drivetrain
         self.constants_creator: swerve.SwerveModuleConstantsFactory[
             TalonFXConfiguration,
             TalonFXConfiguration,
@@ -217,6 +213,7 @@ class MyRobot(LemonRobot):
             .with_drive_friction_voltage(self.drive_friction_voltage)
         )
 
+        # create each module's constants and store them in a list
         self.module_constants = []
         for i in range(4):
             module_constant = self.constants_creator.create_module_constants(
@@ -260,12 +257,12 @@ class MyRobot(LemonRobot):
             AprilTagField.k2025ReefscapeWelded
         )
 
-        self.camera_front = LemonCamera(
-            "Global_Shutter_Camera", self.robot_to_camera_front, self.field_layout
-        )
-        self.camera_back = LemonCamera(
-            "USB_Camera", self.robot_to_camera_back, self.field_layout
-        )
+        # self.camera_front = LemonCamera(
+        #     "Global_Shutter_Camera", self.robot_to_camera_front, self.field_layout
+        # )
+        # self.camera_back = LemonCamera(
+        #     "USB_Camera", self.robot_to_camera_back, self.field_layout
+        # )
 
         """
         MISCELLANEOUS
@@ -293,13 +290,12 @@ class MyRobot(LemonRobot):
     def teleopPeriodic(self):
         with self.consumeExceptions():
             self.drivetrain.drive_field_centric(
-                applyDeadband(self.primary.getLeftX(), 0.03),
                 applyDeadband(self.primary.getLeftY(), 0.03),
+                applyDeadband(-self.primary.getLeftX(), 0.03),
                 applyDeadband(self.primary.getRightX(), 0.03),
             )
             if self.primary.getXButton():
                 self.drivetrain.set_forward()
-            
 
         # with self.consumeExceptions():
         #     """

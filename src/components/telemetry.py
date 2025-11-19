@@ -24,12 +24,24 @@ class Telemetry(Sendable):
         Sendable.__init__(self)
         self._inst = NetworkTableInstance.getDefault()
         self._drive_state_table = self._inst.getTable("DriveState")
-        self._drive_speeds = self._drive_state_table.getStructTopic("Speeds", ChassisSpeeds).publish()
-        self._drive_module_states = self._drive_state_table.getStructArrayTopic("ModuleStates", SwerveModuleState).publish()
-        self._drive_module_targets = self._drive_state_table.getStructArrayTopic("ModuleTargets", SwerveModuleState).publish()
-        self._drive_module_positions = self._drive_state_table.getStructArrayTopic("ModulePositions", SwerveModulePosition).publish()
-        self._drive_timestamp = self._drive_state_table.getDoubleTopic("Timestamp").publish()
-        self._drive_odometry_frequency = self._drive_state_table.getDoubleTopic("OdometryFrequency").publish()
+        self._drive_speeds = self._drive_state_table.getStructTopic(
+            "Speeds", ChassisSpeeds
+        ).publish()
+        self._drive_module_states = self._drive_state_table.getStructArrayTopic(
+            "ModuleStates", SwerveModuleState
+        ).publish()
+        self._drive_module_targets = self._drive_state_table.getStructArrayTopic(
+            "ModuleTargets", SwerveModuleState
+        ).publish()
+        self._drive_module_positions = self._drive_state_table.getStructArrayTopic(
+            "ModulePositions", SwerveModulePosition
+        ).publish()
+        self._drive_timestamp = self._drive_state_table.getDoubleTopic(
+            "Timestamp"
+        ).publish()
+        self._drive_odometry_frequency = self._drive_state_table.getDoubleTopic(
+            "OdometryFrequency"
+        ).publish()
 
     def setup(self):
         """
@@ -40,8 +52,6 @@ class Telemetry(Sendable):
         """
         SignalLogger.start()
         self.nt = SmartNT("Telemetry")
-
-        
 
     def telemeterize(self, state: swerve.SwerveDrivetrain.SwerveDriveState):
         """
@@ -66,8 +76,6 @@ class Telemetry(Sendable):
             module_targets_array.append(state.module_targets[i].angle.degrees())
             module_targets_array.append(state.module_targets[i].speed)
 
-        
-
         SignalLogger.write_double_array("DriveState/Pose", pose_array)
         SignalLogger.write_double_array("DriveState/ModuleStates", module_states_array)
         SignalLogger.write_double_array(
@@ -81,7 +89,6 @@ class Telemetry(Sendable):
         SmartDashboard.putData("Estimated Field", self.estimated_field)
 
         SmartDashboard.putData("Swerve Drive", self)
-        
 
     def get_pose(self) -> Pose2d:
         return self.state.pose

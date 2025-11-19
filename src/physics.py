@@ -43,19 +43,14 @@ class PhysicsEngine:
         self.robot = robot
 
         # Vision Simulation
-        self.vision_sim = LemonCameraSim(
-            robot.camera_front, robot.field_layout, fov=100.0, fps=20.0
-        )
+        # self.vision_sim = LemonCameraSim(
+        #     robot.camera_front, robot.field_layout, fov=100.0, fps=20.0
+        # )
 
         self.last_sim_time: phoenix6.units.second = 0.0
 
     def update_sim(self, now: float, tm_diff: float) -> None:
-        current_time =utils.get_current_time_seconds()
-        delta_time = current_time - self.last_sim_time
-        self.last_sim_time = current_time
-        self.robot.drivetrain.sim_update(
-            delta_time, wpilib.RobotController.getBatteryVoltage()
-        )
+        self.robot.drivetrain.sim_update(tm_diff)
 
         # Simulate Vision
-        self.vision_sim.update(self.robot.telemetry.get_pose())
+        # self.vision_sim.update(self.robot.telemetry.get_pose())
